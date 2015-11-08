@@ -1,4 +1,5 @@
 ﻿using HostRestService.Interfaces;
+using HostRestService.LogEvent;
 using HostRestService.Services;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace HostRestService
 {
     public partial class HostService : ServiceBase
     {
+        ILogEventViewer _logEvent;
         Dictionary<string, IWindSerOperations> _innerDictionary;
 
         private CancellationTokenSource _tokenSource = null;
@@ -24,15 +26,11 @@ namespace HostRestService
         {
             InitializeComponent();
 
-
-            EventLog appLog =new EventLog();
-            appLog.Source = "This Application's Name";
-            appLog.WriteEntry("An entry to the Application event log.");
-
+            _logEvent = new LogEventViewer(this.ServiceName);
             _innerDictionary = new Dictionary<string, IWindSerOperations>();
 
-            _innerDictionary.Add("TestService", new WindSerOperations<TestService, ITestService>("http://localhost:8000"));
-            _innerDictionary.Add("TestServiceTwo", new WindSerOperations<TestServiceTwo, ITestServiceTwo>("http://localhost:8001"));
+            _innerDictionary.Add("TestService", new WindSerOperations<TestService, ITestService>("TestService", "http://localhost:8000", _logEvent));
+            _innerDictionary.Add("TestServiceTwo", new WindSerOperations<TestServiceTwo, ITestServiceTwo>("TestServiceTwo", "http://localhost:8001", _logEvent));
         }
 
         internal void DebugService(string[] args)
