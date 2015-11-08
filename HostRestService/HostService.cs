@@ -1,4 +1,5 @@
 ﻿using HostRestService.Interfaces;
+using HostRestService.LogEvent;
 using HostRestService.Services;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,8 @@ namespace HostRestService
 {
     public partial class HostService : ServiceBase
     {
-        IWindSerOperations _serviceOperations;
+        ILogEventViewer _logEvent;
+        Dictionary<string, IWindSerOperations> _innerDictionary;
 
         private CancellationTokenSource _tokenSource = null;
         private CancellationToken? _token = null;
@@ -24,12 +26,25 @@ namespace HostRestService
         {
             InitializeComponent();
 
-            _serviceOperations = new WindSerOperations<TestService, ITestService>("http://localhost:8000");
+            _logEvent = new LogEventViewer(this.ServiceName);
+            _innerDictionary = new Dictionary<string, IWindSerOperations>();
+
+            _innerDictionary.Add("TestService", new WindSerOperations<TestService, ITestService>("TestService", "http://localhost:8000", _logEvent));
+            _innerDictionary.Add("TestServiceTwo", new WindSerOperations<TestServiceTwo, ITestServiceTwo>("TestServiceTwo", "http://localhost:8001", _logEvent));
         }
 
         internal void DebugService(string[] args)
         {
-            _serviceOperations.StartOperation();
+            _tokenSource = new CancellationTokenSource();
+            _token = _tokenSource.Token;
+
+            foreach (KeyValuePair<string, IWindSerOperations> windSerOperationKeyValue in _innerDictionary)
+            {
+                Task startedTask = Task.Factory.StartNew(_ =>
+                {
+                    windSerOperationKeyValue.Value.StartOperation();
+                }, _token);
+            }
         }
 
         protected override void OnStart(string[] args)
@@ -37,25 +52,23 @@ namespace HostRestService
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
 
-            IWindSerOperations serviceOperations = new WindSerOperations<TestService, ITestService>("http://localhost:8000");
-            Task startedTask = Task.Factory.StartNew(_ =>
+            foreach (KeyValuePair<string, IWindSerOperations> windSerOperationKeyValue in _innerDictionary)
             {
-                serviceOperations.StartOperation();
+                Task startedTask = Task.Factory.StartNew(_ =>
+                {
+                    windSerOperationKeyValue.Value.StartOperation();
+                }, _token);
             }
-           , _token);
-
-            IWindSerOperations serviceOperationsTwo = new WindSerOperations<TestServiceTwo, ITestServiceTwo>("http://localhost:8001");
-            Task startedTaskTwo = Task.Factory.StartNew(_ =>
-            {
-                serviceOperationsTwo.StartOperation();
-            }
-           , _token);
         }
 
         protected override void OnStop()
         {
+            foreach (KeyValuePair<string, IWindSerOperations> windSerOperationKeyValue in _innerDictionary)
+            {
+                windSerOperationKeyValue.Value.StopOperation();
+            }
+
             _tokenSource.Cancel();
-            _serviceOperations.StopOperation();
         }
 
 

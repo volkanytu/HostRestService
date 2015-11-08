@@ -10,17 +10,23 @@ using System.Text;
 using System.Collections;
 using System.IO;
 using System.Threading;
+using HostRestService.LogEvent;
+using System.Diagnostics;
 
 namespace HostRestService
 {
     public class WindSerOperations<TService, TServiceInterface> : IWindSerOperations
     {
-        WebServiceHost _host;
-        ServiceEndpoint _ep;
-        bool _stopTriggerred = false;
+        private WebServiceHost _host;
+        private ServiceEndpoint _ep;
+        private bool _stopTriggerred = false;
+        private ILogEventViewer _logEventviewer;
+        private string _serviceName;
 
-        public WindSerOperations(string uri)
+        public WindSerOperations(string serviceName, string uri, ILogEventViewer logEventviewer)
         {
+            _logEventviewer = logEventviewer;
+            _serviceName = serviceName;
             _host = new WebServiceHost(typeof(TService), new Uri(uri));
             _ep = _host.AddServiceEndpoint(typeof(TServiceInterface), new WebHttpBinding(), "");
         }
@@ -31,10 +37,7 @@ namespace HostRestService
             stp.HttpHelpPageEnabled = false;
             _host.Open();
 
-            using (StreamWriter streamWriter = new StreamWriter(@"C:\LogFolder\restservicelog.txt"))
-            {
-                streamWriter.WriteLine("Service is up and running");
-            }
+            _logEventviewer.LogEvent(string.Format("{0} service is up and running.", _serviceName), EventLogEntryType.Information, Thread.CurrentThread.ManagedThreadId);
 
             while (!_stopTriggerred)
             {
@@ -45,7 +48,7 @@ namespace HostRestService
         public void StopOperation()
         {
             _host.Close();
-
+            _logEventviewer.LogEvent(string.Format("{0} service stopped.", _serviceName), EventLogEntryType.Information, Thread.CurrentThread.ManagedThreadId);
             _stopTriggerred = true;
         }
     }
