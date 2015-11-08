@@ -11,8 +11,14 @@ namespace HostRestService.Interfaces
     public interface ITestService
     {
         [OperationContract]
-        [WebGet(BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json, UriTemplate = "/GetTest/{inputMessage}")]
-        string GetMessage(string inputMessage);
+        [WebGet(BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json
+            , UriTemplate = "/SetMessage/{inputMessage}")]
+        string SetMessage(string inputMessage);
+
+        [OperationContract]
+        [WebGet(BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json
+            , UriTemplate = "/GetMessage/{sessionId}")]
+        string GetMessage(string sessionId);
 
         [OperationContract]
         [WebInvoke(Method = "POST", BodyStyle = WebMessageBodyStyle.WrappedRequest, RequestFormat = WebMessageFormat.Json, ResponseFormat = WebMessageFormat.Json
